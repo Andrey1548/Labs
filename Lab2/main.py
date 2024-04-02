@@ -147,7 +147,7 @@ async def create_processed_agent_data(data: List[ProcessedAgentData]):
             )
             db.execute(query)
             
-        #    await send_data_to_subscribers(item.agent_data.user_id, item.json())
+            await send_data_to_subscribers(item.agent_data.user_id, item.json())
 
         db.commit()
     except Exception as e:
