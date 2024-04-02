@@ -39,7 +39,6 @@ processed_agent_data = Table(
     metadata,
     Column("id", Integer, primary_key=True, index=True, autoincrement=True),
     Column("road_state", String),
-    Column("user_id", Integer),
     Column("x", Float),
     Column("y", Float),
     Column("z", Float),
@@ -54,7 +53,6 @@ SessionLocal = sessionmaker(bind=engine)
 class ProcessedAgentDataInDB(BaseModel):
     id: Optional[int] = -1
     road_state: str
-    user_id: int
     x: float
     y: float
     z: float
@@ -76,7 +74,6 @@ class GpsData(BaseModel):
 
 
 class AgentData(BaseModel):
-    user_id: int
     accelerometer: AccelerometerData
     gps: GpsData
     timestamp: datetime
@@ -104,24 +101,24 @@ subscriptions: Dict[int, Set[WebSocket]] = {}
 
 
 # FastAPI WebSocket endpoint
-@app.websocket("/ws/{user_id}")
-async def websocket_endpoint(websocket: WebSocket, user_id: int):
-    await websocket.accept()
-    if user_id not in subscriptions:
-        subscriptions[user_id] = set()
-    subscriptions[user_id].add(websocket)
-    try:
-        while True:
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        subscriptions[user_id].remove(websocket)
+#@app.websocket("/ws/{user_id}")
+#async def websocket_endpoint(websocket: WebSocket, user_id: int):
+ #   await websocket.accept()
+  #  if user_id not in subscriptions:
+   #     subscriptions[user_id] = set()
+   # subscriptions[user_id].add(websocket)
+   # try:
+   #     while True:
+   #         await websocket.receive_text()
+   # except WebSocketDisconnect:
+   #     subscriptions[user_id].remove(websocket)
 
 
 # Function to send data to subscribed users
-async def send_data_to_subscribers(user_id: int, data):
-    if user_id in subscriptions:
-        for websocket in subscriptions[user_id]:
-            await websocket.send_json(json.dumps(data))
+#async def send_data_to_subscribers(user_id: int, data):
+ #   if user_id in subscriptions:
+  #      for websocket in subscriptions[user_id]:
+   #         await websocket.send_json(json.dumps(data))
 
 
 # FastAPI CRUDL endpoints
@@ -135,14 +132,12 @@ async def create_processed_agent_data(data: List[ProcessedAgentData]):
             road_state = item.road_state
             agent_data = item.agent_data
 
-            user_id = agent_data.user_id
             accelerometer = agent_data.accelerometer
             gps = agent_data.gps
             timestamp = agent_data.timestamp
             
             query = insert(processed_agent_data).values(
                 road_state=road_state,
-                user_id=user_id,
                 x=accelerometer.x,
                 y=accelerometer.y,
                 z=accelerometer.z,
@@ -152,7 +147,7 @@ async def create_processed_agent_data(data: List[ProcessedAgentData]):
             )
             db.execute(query)
             
-            await send_data_to_subscribers(item.agent_data.user_id, item.json())
+        #    await send_data_to_subscribers(item.agent_data.user_id, item.json())
 
         db.commit()
     except Exception as e:
@@ -200,7 +195,6 @@ def update_processed_agent_data(processed_agent_data_id: int, data: ProcessedAge
         road_state = data.road_state
         agent_data = data.agent_data
 
-        user_id = agent_data.user_id
         accelerometer = agent_data.accelerometer
         gps = agent_data.gps
         timestamp = agent_data.timestamp
@@ -209,7 +203,6 @@ def update_processed_agent_data(processed_agent_data_id: int, data: ProcessedAge
             .where(processed_agent_data.c.id == processed_agent_data_id)
             .values(
                 road_state=road_state,
-                user_id=user_id,
                 x=accelerometer.x,
                 y=accelerometer.y,
                 z=accelerometer.z,
